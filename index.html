@@ -34,6 +34,7 @@
             flex: 0 0 auto;
             width: 280px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+            user-select: none;
         }
 
         @media (max-width: 640px) {
@@ -62,7 +63,6 @@
             opacity: 0.2;
         }
 
-        /* Slide Control */
         .slide-container {
             display: flex;
             overflow-x: auto;
@@ -70,11 +70,13 @@
             padding: 1.5rem 1rem 3rem 1rem;
             scroll-snap-type: x mandatory;
             scrollbar-width: none;
+            scroll-behavior: smooth;
+            cursor: grab;
         }
+        .slide-container:active { cursor: grabbing; }
         .slide-container::-webkit-scrollbar { display: none; }
         .magic-card { scroll-snap-align: start; }
 
-        /* Category Pill - Cool Design */
         .cat-pill {
             background: white;
             border: 2px solid transparent;
@@ -92,19 +94,31 @@
             box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
         }
 
-        /* Navbar & Header */
         .nav-glass {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(99, 102, 241, 0.1);
         }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, var(--dance-primary), var(--dance-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .scroll-btn {
+            background: white;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            color: #64748b;
+        }
+        .scroll-btn:hover {
+            background: var(--dance-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Modal Swipe indicator style */
+        .modal-drag-area {
+            cursor: grab;
+        }
+        .modal-drag-area:active {
+            cursor: grabbing;
         }
     </style>
 </head>
@@ -145,10 +159,7 @@
                 <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600"></i>
             </div>
 
-            <!-- Modern Category Selector -->
-            <div id="category-bar" class="flex overflow-x-auto gap-3 pb-2 scroll-smooth no-scrollbar py-1">
-                <!-- JS Inject Pills -->
-            </div>
+            <div id="category-bar" class="flex overflow-x-auto gap-3 pb-2 scroll-smooth no-scrollbar py-1"></div>
         </div>
     </header>
 
@@ -181,21 +192,43 @@
     <!-- Modal Video Player -->
     <div id="video-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-xl" onclick="closeModal()"></div>
-        <div class="relative w-full max-w-4xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+        <div id="modal-content" class="relative w-full max-w-4xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            <!-- Close Button -->
             <button onclick="closeModal()" class="absolute top-6 right-6 z-[110] bg-white/90 hover:bg-red-500 hover:text-white p-3 rounded-2xl transition-all shadow-lg text-slate-600">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
+            
             <div class="aspect-video bg-black">
                 <div id="player-container" class="w-full h-full"></div>
             </div>
-            <div class="p-8 md:p-12 text-center bg-gradient-to-b from-white to-slate-50">
-                <h2 id="modal-title" class="text-xl md:text-3xl font-bold text-slate-800 mb-8 line-clamp-2 leading-tight">ชื่อตอน</h2>
+
+            <!-- Content & Controls Area -->
+            <div class="p-6 md:p-10 text-center bg-gradient-to-b from-white to-slate-50 modal-drag-area">
+                <div class="flex items-center justify-center gap-4 mb-2">
+                    <span id="modal-counter" class="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.2em] bg-indigo-50 px-3 py-1 rounded-full">ตอนที่ 0/0</span>
+                </div>
+
+                <!-- Title with Slide Buttons -->
+                <div class="flex items-center justify-center gap-2 md:gap-6 mb-8 group">
+                    <button onclick="playPrev()" class="scroll-btn p-3 rounded-2xl shrink-0">
+                        <i data-lucide="chevron-left" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                    
+                    <h2 id="modal-title" class="text-lg md:text-2xl font-bold text-slate-800 line-clamp-2 leading-tight flex-1">ชื่อตอน</h2>
+                    
+                    <button onclick="playNext()" class="scroll-btn p-3 rounded-2xl shrink-0">
+                        <i data-lucide="chevron-right" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                </div>
+
                 <div class="flex justify-center gap-4">
-                    <button id="modal-fav-btn" onclick="toggleFavoriteCurrent()" class="px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 transition-all active:scale-95 shadow-xl hover:shadow-indigo-200">
+                    <button id="modal-fav-btn" onclick="toggleFavoriteCurrent()" class="px-8 py-3.5 rounded-2xl font-bold text-xs md:text-sm flex items-center gap-3 transition-all active:scale-95 shadow-xl hover:shadow-indigo-200">
                         <i data-lucide="bookmark" class="w-5 h-5"></i>
                         <span>เก็บไว้ในรายการโปรด</span>
                     </button>
                 </div>
+                
+                <p class="mt-6 text-[10px] text-slate-300 uppercase tracking-widest font-medium">ลากซ้าย-ขวาบนพื้นที่ว่างเพื่อเปลี่ยนตอน</p>
             </div>
         </div>
     </div>
@@ -240,6 +273,90 @@
             }
         }
 
+        // --- Drag/Swipe to Scroll logic (Common) ---
+        function setupDragScroll(slider, onSwipe) {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            let hasMoved = false;
+            let startTime;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                startX = e.pageX - slider.offsetLeft;
+                if (slider.scrollLeft !== undefined) scrollLeft = slider.scrollLeft;
+                hasMoved = false;
+                startTime = Date.now();
+                if (slider.style.scrollSnapType) {
+                    slider.style.scrollBehavior = 'auto';
+                    slider.style.scrollSnapType = 'none';
+                }
+            });
+
+            slider.addEventListener('mouseleave', () => { isDown = false; resetSlider(slider); });
+            slider.addEventListener('mouseup', (e) => {
+                if (!isDown) return;
+                isDown = false;
+                resetSlider(slider);
+
+                // Swipe logic for Modal
+                if (onSwipe) {
+                    const endX = e.pageX - slider.offsetLeft;
+                    const diff = endX - startX;
+                    const duration = Date.now() - startTime;
+                    if (Math.abs(diff) > 100 && duration < 300) {
+                        if (diff > 0) onSwipe('prev');
+                        else onSwipe('next');
+                    }
+                }
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2;
+                if (Math.abs(walk) > 5) hasMoved = true;
+                if (slider.scrollLeft !== undefined) slider.scrollLeft = scrollLeft - walk;
+            });
+
+            // Touch events
+            slider.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].pageX - slider.offsetLeft;
+                startTime = Date.now();
+                isDown = true;
+            });
+            slider.addEventListener('touchend', (e) => {
+                if (!isDown) return;
+                isDown = false;
+                const endX = e.changedTouches[0].pageX - slider.offsetLeft;
+                const diff = endX - startX;
+                const duration = Date.now() - startTime;
+                if (onSwipe && Math.abs(diff) > 50 && duration < 300) {
+                    if (diff > 0) onSwipe('prev');
+                    else onSwipe('next');
+                }
+            });
+
+            slider.addEventListener('click', (e) => {
+                if (hasMoved) { e.stopPropagation(); e.preventDefault(); }
+            }, true);
+        }
+
+        function resetSlider(slider) {
+            if (slider.style.scrollSnapType) {
+                slider.style.scrollBehavior = 'smooth';
+                slider.style.scrollSnapType = 'x mandatory';
+            }
+        }
+
+        function scrollRow(rowIdx, direction) {
+            const row = document.getElementById('row-' + rowIdx);
+            if (!row) return;
+            const scrollAmount = row.clientWidth * 0.8;
+            row.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+        }
+
         function renderHome() {
             const container = document.getElementById('main-content');
             const categoryBar = document.getElementById('category-bar');
@@ -257,15 +374,11 @@
                 const jumpBtn = document.createElement('button');
                 jumpBtn.className = 'cat-pill px-6 py-2.5 rounded-2xl text-sm transition-all flex items-center gap-2';
                 jumpBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> ${category}`;
-                
                 jumpBtn.onclick = (e) => {
                     document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
                     e.currentTarget.classList.add('active');
                     const sectionEl = document.getElementById('section-'+idx);
-                    if (sectionEl) {
-                        const offset = 180;
-                        window.scrollTo({ top: sectionEl.offsetTop - offset, behavior: 'smooth' });
-                    }
+                    if (sectionEl) window.scrollTo({ top: sectionEl.offsetTop - 180, behavior: 'smooth' });
                 };
                 categoryBar.appendChild(jumpBtn);
 
@@ -274,9 +387,14 @@
                 section.className = 'mb-12';
                 section.innerHTML = `
                     <div class="px-6 flex items-center justify-between mb-2">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-3">
-                            <span class="w-2 h-8 bg-gradient-to-b from-indigo-600 to-purple-500 rounded-full"></span> ${category}
-                        </h2>
+                        <div class="flex items-center gap-3">
+                            <span class="w-2 h-8 bg-gradient-to-b from-indigo-600 to-purple-500 rounded-full"></span>
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">${category}</h2>
+                            <div class="hidden md:flex gap-2 ml-4">
+                                <button onclick="scrollRow(${idx}, 'left')" class="scroll-btn p-1.5 rounded-full"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                                <button onclick="scrollRow(${idx}, 'right')" class="scroll-btn p-1.5 rounded-full"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
                         <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg">${videos.length} ตอน</span>
                     </div>
                     <div class="slide-container" id="row-${idx}">
@@ -284,6 +402,7 @@
                     </div>
                 `;
                 container.appendChild(section);
+                setupDragScroll(section.querySelector('.slide-container'));
             });
             lucide.createIcons();
         }
@@ -291,7 +410,7 @@
         function renderCard(v, sectionIdx, videoIdx) {
             return `
                 <div class="magic-card group cursor-pointer overflow-hidden" onclick="playFromSection('${v.category.replace(/'/g, "\\'")}', ${videoIdx})">
-                    <div class="relative w-full aspect-video overflow-hidden bg-slate-200">
+                    <div class="relative w-full aspect-video overflow-hidden bg-slate-200 pointer-events-none">
                         <img src="${v.thumb}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
@@ -300,7 +419,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="p-5">
+                    <div class="p-5 pointer-events-none">
                         <h3 class="text-[14px] font-semibold text-slate-700 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
                             ${v.title}
                         </h3>
@@ -313,32 +432,15 @@
             const q = term.toLowerCase().trim();
             const container = document.getElementById('main-content');
             if(!q) { renderHome(); return; }
-
             const filtered = allVideos.filter(v => v.title.toLowerCase().includes(q) || v.category.toLowerCase().includes(q));
             currentPlaylist = filtered;
-            
-            container.innerHTML = `
-                <div class="px-6 mb-12">
-                    <h2 class="text-sm text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">ผลการค้นหา: <span class="text-indigo-600">"${term}"</span></h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        ${filtered.map((v, i) => renderCard(v, 'search', i)).join('')}
-                    </div>
-                </div>
-            `;
-            if(filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-32">
-                        <i data-lucide="film" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
-                        <p class="text-slate-400 font-medium">ไม่พบรายการที่คุณต้องการ</p>
-                    </div>
-                `;
-            }
+            container.innerHTML = `<div class="px-6 mb-12"><h2 class="text-sm text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">ผลการค้นหา: <span class="text-indigo-600">"${term}"</span></h2><div class="grid grid-cols-2 md:grid-cols-4 gap-6">${filtered.map((v, i) => renderCard(v, 'search', i)).join('')}</div></div>`;
+            if(filtered.length === 0) container.innerHTML = `<div class="text-center py-32"><i data-lucide="film" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i><p class="text-slate-400 font-medium">ไม่พบรายการที่คุณต้องการ</p></div>`;
             lucide.createIcons();
         }
 
         function playFromSection(category, index) {
-            const sectionVideos = allVideos.filter(v => v.category === category);
-            currentPlaylist = sectionVideos;
+            currentPlaylist = allVideos.filter(v => v.category === category);
             playVideo(index);
         }
 
@@ -348,6 +450,7 @@
             currentVideo = currentPlaylist[i];
             
             document.getElementById('modal-title').textContent = currentVideo.title;
+            document.getElementById('modal-counter').textContent = `ตอนที่ ${currentIndex + 1}/${currentPlaylist.length}`;
             document.getElementById('video-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
@@ -365,7 +468,12 @@
 
         function playNext() {
             if (currentIndex < currentPlaylist.length - 1) playVideo(currentIndex + 1);
-            else closeModal();
+            else playVideo(0); // Loop back or stop
+        }
+
+        function playPrev() {
+            if (currentIndex > 0) playVideo(currentIndex - 1);
+            else playVideo(currentPlaylist.length - 1); // Go to end
         }
 
         function closeModal() {
@@ -394,7 +502,7 @@
             const btn = document.getElementById('modal-fav-btn');
             if (!btn || !currentVideo) return;
             const isFav = favorites.includes(currentVideo.id);
-            btn.className = `px-10 py-4 rounded-2xl font-bold text-sm flex items-center gap-3 mx-auto transition-all active:scale-95 shadow-xl ${isFav ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
+            btn.className = `px-8 py-3.5 rounded-2xl font-bold text-xs md:text-sm flex items-center gap-3 mx-auto transition-all active:scale-95 shadow-xl ${isFav ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
             btn.querySelector('span').textContent = isFav ? 'ลบออกจากรายการโปรด' : 'เก็บไว้ในรายการโปรด';
             lucide.createIcons();
         }
@@ -403,27 +511,16 @@
             const list = allVideos.filter(v => favorites.includes(v.id));
             currentPlaylist = list;
             const container = document.getElementById('main-content');
-            container.innerHTML = `
-                <div class="px-6 mb-12">
-                    <h2 class="text-xl font-bold text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-3">
-                        <i data-lucide="star" class="fill-current"></i> รายการที่บันทึกไว้
-                    </h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        ${list.map((v, i) => renderCard(v, 'fav', i)).join('')}
-                    </div>
-                </div>
-            `;
-            if(list.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-32">
-                        <i data-lucide="bookmark" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
-                        <p class="text-slate-400 font-medium">ยังไม่มีรายการที่บันทึกไว้</p>
-                        <button onclick="goHome()" class="mt-6 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200">ดูรายการทั้งหมด</button>
-                    </div>
-                `;
-            }
+            container.innerHTML = `<div class="px-6 mb-12"><h2 class="text-xl font-bold text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-3"><i data-lucide="star" class="fill-current"></i> รายการที่บันทึกไว้</h2><div class="grid grid-cols-2 md:grid-cols-4 gap-6">${list.map((v, i) => renderCard(v, 'fav', i)).join('')}</div></div>`;
+            if(list.length === 0) container.innerHTML = `<div class="text-center py-32"><i data-lucide="bookmark" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i><p class="text-slate-400 font-medium">ยังไม่มีรายการที่บันทึกไว้</p><button onclick="goHome()" class="mt-6 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200">ดูรายการทั้งหมด</button></div>`;
             lucide.createIcons();
         }
+
+        // Initialize Modal Swipe
+        setupDragScroll(document.querySelector('.modal-drag-area'), (dir) => {
+            if (dir === 'next') playNext();
+            else playPrev();
+        });
 
         lucide.createIcons();
         window.onload = fetchVideos;
